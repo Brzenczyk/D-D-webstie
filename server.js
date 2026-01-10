@@ -7,10 +7,15 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PIN = process.env.ADMIN_PIN || "1234";
 
+// Middleware
 app.use(express.json());
 app.use(express.static("public"));
 
-// ===== PLAYERS =====
+function isAdminRequest(req) {
+    return req.headers["x-admin"] === "true";
+}
+
+/* ===== PLAYERS ===== */
 app.get("/api/players", (req, res) => {
     db.all("SELECT * FROM players", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -35,7 +40,7 @@ app.post("/api/players", (req, res) => {
     });
 });
 
-// ===== DATES =====
+/* ===== DATES ===== */
 app.get("/api/dates", (req, res) => {
     db.all("SELECT id, session_date, votes, is_confirmed FROM dates ORDER BY votes DESC", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -55,12 +60,13 @@ app.post("/api/dates", (req, res) => {
 
     db.run("INSERT INTO dates (session_date) VALUES (?)", [date], async (err) => {
         if (err) return res.status(400).json({ error: "Data już istnieje!" });
-        await sendMail("📅 Nowy termin sesji D&D", `Dodano nową datę: ${date}`);
+
+        await sendMail("📅 Nowy termin", `Dodano nową datę: ${date}`);
         res.json({ message: "Data dodana" });
     });
 });
 
-// ===== VOTES =====
+/* ===== VOTES ===== */
 app.get("/api/votes/:playerId", (req, res) => {
     const playerId = req.params.playerId;
     db.all(`
@@ -86,24 +92,35 @@ app.post("/api/vote", (req, res) => {
 
             db.run("UPDATE dates SET votes = votes + 1 WHERE id = ?", [dateRow.id]);
 
-            // wysyłamy mail przy głosowaniu
-            const player = await new Promise((resolve) => {
-                db.get("SELECT name FROM players WHERE id = ?", [playerId], (err, row) => resolve(row));
-            });
-            const playerName = player?.name || "Nieznany gracz";
-            await sendMail("🗳️ Nowy głos w planowaniu sesji D&D", `${playerName} zagłosował na ${date}`);
+            // Wyślij maila do Mailtrapa i opcjonalnie do użytkownika (jeśli podał email)
+            db.get("SELECT email, name FROM players WHERE id = ?", [playerId], async (err, player) => {
+                if (player?.email || player?.name) {
+                    let recipients = [process.env.MAIL_TO]; // zawsze Mailtrap
+                    if (player.email) recipients.push(player.email);
 
-            res.json({ message: "Głos zapisany" });
+                    await sendMail(
+                        "🗳️ Nowy głos w planowaniu sesji D&D",
+                        `${player.name || "Nieznany gracz"} zagłosował na ${date}`,
+                        recipients
+                    );
+                }
+                res.json({ message: "Głos zapisany" });
+            });
         });
     });
 });
 
-// ===== ADMIN DELETE / CONFIRM =====
-app.post("/api/admin/date/:id/delete", (req, res) => {
+/* ===== ADMIN ===== */
+app.post("/api/admin/login", (req, res) => {
     const { pin } = req.body;
-    if (pin !== ADMIN_PIN) return res.status(403).json({ error: "Brak uprawnień admina" });
+    if (pin === ADMIN_PIN) return res.json({ ok: true });
+    return res.status(403).json({ error: "Zły PIN" });
+});
 
-    db.run("DELETE FROM dates WHERE id = ?", [req.params.id], function(err) {
+app.post("/api/admin/date/:id/delete", (req, res) => {
+    if (!isAdminRequest(req)) return res.status(403).json({ error: "Brak uprawnień admina" });
+
+    db.run("DELETE FROM dates WHERE id = ?", [req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         db.run("DELETE FROM votes WHERE date_id = ?", [req.params.id]);
         res.json({ ok: true });
@@ -111,8 +128,7 @@ app.post("/api/admin/date/:id/delete", (req, res) => {
 });
 
 app.post("/api/admin/date/:id/confirm", (req, res) => {
-    const { pin } = req.body;
-    if (pin !== ADMIN_PIN) return res.status(403).json({ error: "Brak uprawnień admina" });
+    if (!isAdminRequest(req)) return res.status(403).json({ error: "Brak uprawnień admina" });
 
     db.run("UPDATE dates SET is_confirmed = 0", [], (err) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -123,7 +139,7 @@ app.post("/api/admin/date/:id/confirm", (req, res) => {
     });
 });
 
-// ===== DATES + VOTERS =====
+/* ===== DATES + VOTERS ===== */
 app.get("/api/date-votes", (req, res) => {
     db.all(`
         SELECT d.session_date, p.name, p.emoji
@@ -132,14 +148,16 @@ app.get("/api/date-votes", (req, res) => {
         JOIN players p ON v.player_id = p.id
     `, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
+
         const map = {};
         rows.forEach(r => {
             if (!map[r.session_date]) map[r.session_date] = [];
             map[r.session_date].push({ name: r.name, emoji: r.emoji });
         });
+
         res.json(map);
     });
 });
 
-// ===== START SERVER =====
+/* ===== START SERVER ===== */
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));

@@ -1,11 +1,7 @@
 const sqlite3 = require("sqlite3").verbose();
-
-// na Renderze zapisujemy do /tmp/database.db
-const dbFile = process.env.RENDER ? "/tmp/database.db" : "./database.db";
-const db = new sqlite3.Database(dbFile);
+const db = new sqlite3.Database("./database.db");
 
 db.serialize(() => {
-    // tabela players
     db.run(`
         CREATE TABLE IF NOT EXISTS players (
             id TEXT PRIMARY KEY,
@@ -17,7 +13,6 @@ db.serialize(() => {
         )
     `);
 
-    // tabela dates
     db.run(`
         CREATE TABLE IF NOT EXISTS dates (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,7 +22,6 @@ db.serialize(() => {
         )
     `);
 
-    // tabela votes
     db.run(`
         CREATE TABLE IF NOT EXISTS votes (
             player_id TEXT,
