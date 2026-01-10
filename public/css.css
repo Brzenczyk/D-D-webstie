@@ -1,0 +1,144 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Georgia, serif;
+    background: radial-gradient(circle at top, #2b1f17, #0f0b08);
+    color: #f3e6c9;
+}
+
+.container {
+    max-width: 650px;
+    margin: 40px auto;
+    background: rgba(40, 28, 20, 0.95);
+    border: 2px solid #c9a24d;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.7);
+}
+
+h1 {
+    text-align: center;
+    color: #e2c27c;
+    margin-bottom: 30px;
+}
+
+.section {
+    background: rgba(25, 18, 13, 0.9);
+    border: 1px solid #7c5c2e;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.section h2 {
+    margin-top: 0;
+    color: #d9b76e;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    background: #1c140e;
+    border: 1px solid #7c5c2e;
+    color: #f3e6c9;
+    border-radius: 4px;
+    margin-top: 6px;
+}
+
+button {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: linear-gradient(#d9b76e, #a37c30);
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: linear-gradient(#e7cf8c, #b28a3a);
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    background: rgba(45, 32, 22, 0.9);
+    border: 1px solid #7c5c2e;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+li button {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+}
+
+#welcome {
+    margin-top: 10px;
+    text-align: center;
+    font-style: italic;
+    color: #c9a24d;
+}
+
+/* ---- ADMIN MODAL ---- */
+/* ---- ADMIN MODAL ---- */
+.modal {
+    display: none; 
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); /* przyciemnienie tła */
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: rgba(40, 28, 20, 0.95); /* ciemne, jak container */
+    border: 2px solid #c9a24d;
+    box-shadow: 0 0 20px rgba(0,0,0,0.7);
+    padding: 20px;
+    border-radius: 12px;
+    width: 300px;
+    text-align: center;
+    position: relative;
+    color: #f3e6c9;
+}
+
+
+.modal-content button {
+    background: linear-gradient(#d9b76e, #a37c30);
+    border-radius: 6px;
+    border: none;
+    color: #1c140e;
+    font-weight: bold;
+    padding: 6px 12px;
+    margin-top: 10px;
+}
+.modal-content button:hover {
+    background: linear-gradient(#e7cf8c, #b28a3a);
+}
+
+
+.close {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    cursor: pointer;
+}
+
+button {
+    margin: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
