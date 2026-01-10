@@ -10,17 +10,16 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-async function sendMail(to, subject, text) {
+async function sendMail(subject, text) {
     try {
         await transporter.sendMail({
             from: '"D&D Planner 🎲" <no-reply@dnd-planner.local>',
-            to,
+            to: process.env.MAIL_USER,
             subject,
             text
         });
     } catch (err) {
         console.error("MAIL ERROR:", err.message);
-        // ❗ NIE RZUCAJEMY błędu dalej
     }
 }
 

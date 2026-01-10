@@ -6,6 +6,10 @@ const { sendMail } = require("./mailer");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PIN = process.env.ADMIN_PIN || "1234";
+function isAdminRequest(req) {
+    return req.headers["x-admin"] === "true";
+}
+
 
 app.use(express.json());
 app.use(express.static("public"));
@@ -66,6 +70,18 @@ app.get("/api/votes/:playerId", (req, res) => {
     });
 });
 
+app.get("/api/players", (req, res) => {
+    db.all(
+        "SELECT id, name, emoji FROM players ORDER BY name",
+        [],
+        (err, rows) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json(rows);
+        }
+    );
+});
+
+
 app.post("/api/vote", (req, res) => {
     const { date, playerId } = req.body;
     if (!playerId) return res.status(400).json({ error: "Brak ID gracza" });
@@ -96,7 +112,10 @@ app.post("/api/admin/login", (req, res) => {
 
 app.post("/api/admin/date/:id/delete", (req, res) => {
     const { isAdmin } = req.body;
-    if (!isAdmin) return res.status(403).json({ error: "Brak uprawnień" });
+    if (!isAdminRequest(req)) {
+    return res.status(403).json({ error: "Brak uprawnień admina" });
+}
+
 
     db.run("DELETE FROM dates WHERE id = ?", [req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });

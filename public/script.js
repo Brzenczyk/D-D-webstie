@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const dateInput = document.getElementById("dateInput");
     const addDateBtn = document.getElementById("addDate");
     const dateList = document.getElementById("dateList");
+    const playerSelect = document.getElementById("playerSelect");
 
     const adminBtn = document.getElementById("adminBtn");
     const adminModal = document.getElementById("adminModal");
@@ -48,11 +49,15 @@ document.addEventListener("DOMContentLoaded", () => {
         isPlayerRegistered = true;
         welcomeText.textContent = `Witaj, ${name}!`;
 
-        await fetch("/api/players", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: playerId, name, email, emoji })
-        });
+       await fetch(`/api/admin/date/${item.id}/delete`, {
+    method: "POST",
+    headers: {
+        "x-admin": "true"
+    }
+});
+fetchPlayers();
+
+
 
         fetchVotes();
         fetchDates();
@@ -68,6 +73,21 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
         renderDates(data);
     }
+
+    async function fetchPlayers() {
+    const res = await fetch("/api/players");
+    const players = await res.json();
+
+    playerSelect.innerHTML = `<option value="">— wybierz gracza —</option>`;
+
+    players.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = `${p.emoji} ${p.name}`;
+        playerSelect.appendChild(opt);
+    });
+}
+
 
     // ===== DODAWANIE DATY =====
     addDateBtn.addEventListener("click", async () => {
@@ -183,11 +203,13 @@ document.addEventListener("DOMContentLoaded", () => {
         fetchDates();
     });
 
+   if (logoutAdminBtn) {
     logoutAdminBtn.addEventListener("click", () => {
         isAdmin = false;
         localStorage.setItem("isAdmin", "false");
         fetchDates();
     });
+}
 
     fetchDates();
 });
