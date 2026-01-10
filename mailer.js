@@ -4,8 +4,8 @@ let transporter = null;
 
 if (process.env.MAIL_USER && process.env.MAIL_PASS) {
     transporter = nodemailer.createTransport({
-        host: process.env.MAIL_HOST,
-        port: Number(process.env.MAIL_PORT),
+        host: process.env.MAIL_HOST,       // np. sandbox.smtp.mailtrap.io
+        port: Number(process.env.MAIL_PORT) || 2525,
         secure: false,
         auth: {
             user: process.env.MAIL_USER,
@@ -15,12 +15,11 @@ if (process.env.MAIL_USER && process.env.MAIL_PASS) {
 }
 
 async function sendMail(subject, text, recipients = [process.env.MAIL_TO]) {
-    if (!transporter || !recipients.length) return;
-
+    if (!transporter) return;
     try {
         await transporter.sendMail({
             from: '"D&D Planner 🎲" <no-reply@dnd-planner.local>',
-            to: recipients.join(","), // Mailtrap + ewentualnie użytkownik
+            to: "test@mailtrap.io",  // Mailtrap + gracz jeśli poda email
             subject,
             text
         });
