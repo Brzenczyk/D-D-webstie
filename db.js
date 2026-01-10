@@ -1,9 +1,8 @@
 const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
 
-// używamy /tmp/database.db, albo fallback na lokalną dla testów
-const dbPath = process.env.DATABASE_PATH || path.join("/tmp", "database.db");
-const db = new sqlite3.Database(dbPath);
+// na Renderze zapisujemy do /tmp/database.db
+const dbFile = process.env.RENDER ? "/tmp/database.db" : "./database.db";
+const db = new sqlite3.Database(dbFile);
 
 db.serialize(() => {
     // tabela players
