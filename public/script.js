@@ -1,215 +1,222 @@
-document.addEventListener("DOMContentLoaded", () => {
+// ELEMENTY
+const playerNameInput = document.getElementById("playerName");
+const playerEmailInput = document.getElementById("playerEmail");
+const playerEmojiSelect = document.getElementById("playerEmoji");
+const saveNameBtn = document.getElementById("saveName");
+const welcomeText = document.getElementById("welcome");
+const playerSelect = document.getElementById("playerSelect");
+const dateInput = document.getElementById("dateInput");
+const addDateBtn = document.getElementById("addDate");
+const dateList = document.getElementById("dateList");
 
-    const playerNameInput = document.getElementById("playerName");
-    const playerEmailInput = document.getElementById("playerEmail");
-    const playerEmojiInput = document.getElementById("playerEmoji");
-    const saveNameBtn = document.getElementById("saveName");
-    const welcomeText = document.getElementById("welcome");
+// ADMIN
+const adminBtn = document.getElementById("adminBtn");
+const adminModal = document.getElementById("adminModal");
+const closeModal = document.getElementById("closeModal");
+const loginAdminBtn = document.getElementById("loginAdminBtn");
+const adminPinInput = document.getElementById("adminPinInput");
+const adminError = document.getElementById("adminError");
 
-    const dateInput = document.getElementById("dateInput");
-    const addDateBtn = document.getElementById("addDate");
-    const dateList = document.getElementById("dateList");
-    const playerSelect = document.getElementById("playerSelect");
+// ZMIENNE
+let playerId = localStorage.getItem("playerId") || crypto.randomUUID();
+localStorage.setItem("playerId", playerId);
+let playerName = localStorage.getItem("playerName") || "";
+let isPlayerRegistered = !!playerName;
+let isAdmin = localStorage.getItem("isAdmin") === "true" || false;
+let votedDates = [];
 
-    const adminBtn = document.getElementById("adminBtn");
-    const adminModal = document.getElementById("adminModal");
-    const adminPinInput = document.getElementById("adminPinInput");
-    const adminLoginBtn = document.getElementById("loginAdminBtn");
-    const logoutAdminBtn = document.getElementById("logoutAdminBtn");
+if (isPlayerRegistered) welcomeText.textContent = `Witaj, ${playerName}!`;
 
-    let playerId = localStorage.getItem("playerId");
-    let votedDates = [];
-    let isPlayerRegistered = false;
-    let isAdmin = localStorage.getItem("isAdmin") === "true";
+// REJESTRACJA GRACZA
+saveNameBtn.addEventListener("click", async () => {
+    const name = playerNameInput.value.trim();
+    const email = playerEmailInput.value.trim() || null;
+    const emoji = playerEmojiSelect.value || "🧙";
+    if (!name) return alert("Podaj imię!");
 
-    if (!playerId) {
-        playerId = crypto.randomUUID();
-        localStorage.setItem("playerId", playerId);
-    }
+    const players = await (await fetch("/api/players")).json();
+    let existing = players.find(p => p.name === name && p.emoji === emoji);
+    if (existing) playerId = existing.id;
+    else playerId = crypto.randomUUID();
 
-    const savedName = localStorage.getItem("playerName");
-    if (savedName) {
-        isPlayerRegistered = true;
-        welcomeText.textContent = `Witaj, ${savedName}!`;
-        fetchVotes();
-    }
+    playerName = name;
+    isPlayerRegistered = true;
+    localStorage.setItem("playerId", playerId);
+    localStorage.setItem("playerName", playerName);
 
-    // ===== ZAPIS GRACZA =====
-    saveNameBtn.addEventListener("click", async () => {
-        const name = playerNameInput.value.trim();
-        const email = playerEmailInput.value.trim();
-        const emoji = playerEmojiInput.value || "🎲";
+    welcomeText.textContent = `Witaj, ${playerName}!`;
+    playerNameInput.value = "";
+    playerEmailInput.value = "";
 
-        if (!name) {
-            alert("Podaj imię!");
-            return;
-        }
-
-        localStorage.setItem("playerName", name);
-        isPlayerRegistered = true;
-        welcomeText.textContent = `Witaj, ${name}!`;
-
-       await fetch(`/api/admin/date/${item.id}/delete`, {
-    method: "POST",
-    headers: {
-        "x-admin": "true"
-    }
-});
-fetchPlayers();
-
-
-
-        fetchVotes();
-        fetchDates();
+    await fetch("/api/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: playerId, name, email, emoji })
     });
 
-    async function fetchVotes() {
-        const res = await fetch(`/api/votes/${playerId}`);
-        votedDates = await res.json();
+    await fetchPlayers();
+    playerSelect.value = playerId;
+    await fetchVotes();
+    fetchDates();
+});
+
+// ZMIANA AKTYWNEGO GRACZA
+playerSelect.addEventListener("change", async () => {
+    playerId = playerSelect.value;
+    localStorage.setItem("playerId", playerId);
+    isAdmin = false;
+    localStorage.setItem("isAdmin", "false");
+
+    const players = await (await fetch("/api/players")).json();
+    const p = players.find(p => p.id === playerId);
+    if (p) {
+        playerName = p.name;
+        localStorage.setItem("playerName", playerName);
+        welcomeText.textContent = `Witaj, ${playerName}!`;
+        isPlayerRegistered = true;
+        await fetchVotes();
+        fetchDates();
     }
+});
 
-    async function fetchDates() {
-        const res = await fetch("/api/dates");
-        const data = await res.json();
-        renderDates(data);
-    }
+// ADMIN MODAL
+adminBtn.addEventListener("click", () => adminModal.style.display = "flex");
+closeModal.addEventListener("click", () => adminModal.style.display = "none");
 
-    async function fetchPlayers() {
-    const res = await fetch("/api/players");
-    const players = await res.json();
+loginAdminBtn.addEventListener("click", () => {
+    if (adminPinInput.value === "1234") {
+        isAdmin = true;
+        localStorage.setItem("isAdmin", "true");
+        adminModal.style.display = "none";
+        alert("Zalogowano jako admin!");
+        fetchDates();
+    } else adminError.textContent = "Nieprawidłowy PIN!";
+});
 
+window.addEventListener("click", (e) => { if(e.target==adminModal) adminModal.style.display="none"; });
+
+// POBIERANIE GRACZY
+async function fetchPlayers() {
+    const players = await (await fetch("/api/players")).json();
     playerSelect.innerHTML = `<option value="">— wybierz gracza —</option>`;
-
     players.forEach(p => {
         const opt = document.createElement("option");
         opt.value = p.id;
         opt.textContent = `${p.emoji} ${p.name}`;
+        if (p.id === playerId) opt.selected = true;
         playerSelect.appendChild(opt);
     });
 }
 
-
-    // ===== DODAWANIE DATY =====
-    addDateBtn.addEventListener("click", async () => {
-        if (!isPlayerRegistered) {
-            alert("Najpierw podaj imię!");
-            return;
-        }
-
-        const dateValue = dateInput.value;
-        if (!dateValue) {
-            alert("Wybierz datę!");
-            return;
-        }
-
-        const res = await fetch("/api/dates", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ date: dateValue })
-        });
-
-        if (!res.ok) {
-            alert("Błąd dodawania daty");
-            return;
-        }
-
-        dateInput.value = "";
-        fetchDates();
-    });
-
-    // ===== RENDER DAT =====
-    function renderDates(dates) {
-        dateList.innerHTML = "";
-
-        if (!dates.length) return;
-
-        const maxVotes = Math.max(...dates.map(d => d.votes));
-
-        dates.forEach(item => {
-            const li = document.createElement("li");
-
-            let label = item.date;
-            if (item.votes === maxVotes && maxVotes > 0) label += " 👑";
-
-            li.textContent = label;
-
-            if (isAdmin) {
-                const delBtn = document.createElement("button");
-                delBtn.textContent = "Usuń";
-                delBtn.onclick = async () => {
-                    await fetch(`/api/admin/date/${item.id}/delete`, { method: "POST" });
-                    fetchDates();
-                };
-
-                const confirmBtn = document.createElement("button");
-                confirmBtn.textContent = "Zatwierdź";
-                confirmBtn.onclick = async () => {
-                    await fetch(`/api/admin/date/${item.id}/confirm`, { method: "POST" });
-                    fetchDates();
-                };
-
-                li.appendChild(confirmBtn);
-                li.appendChild(delBtn);
-            } else {
-                const voteBtn = document.createElement("button");
-
-                if (!isPlayerRegistered) {
-                    voteBtn.textContent = "Podaj imię";
-                    voteBtn.disabled = true;
-                } else if (votedDates.includes(item.date)) {
-                    voteBtn.textContent = `Oddano (${item.votes})`;
-                    voteBtn.disabled = true;
-                } else {
-                    voteBtn.textContent = `Głosuj (${item.votes})`;
-                    voteBtn.onclick = async () => {
-                        await fetch("/api/vote", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ date: item.date, playerId })
-                        });
-                        votedDates.push(item.date);
-                        fetchDates();
-                    };
-                }
-
-                li.appendChild(voteBtn);
-            }
-
-            dateList.appendChild(li);
-        });
-    }
-
-    // ===== ADMIN =====
-    adminBtn.addEventListener("click", () => {
-        adminModal.style.display = "flex";
-    });
-
-    adminLoginBtn.addEventListener("click", async () => {
-        const pin = adminPinInput.value.trim();
-        const res = await fetch("/api/admin/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pin })
-        });
-
-        if (!res.ok) {
-            alert("Zły PIN");
-            return;
-        }
-
-        isAdmin = true;
-        localStorage.setItem("isAdmin", "true");
-        adminModal.style.display = "none";
-        fetchDates();
-    });
-
-   if (logoutAdminBtn) {
-    logoutAdminBtn.addEventListener("click", () => {
-        isAdmin = false;
-        localStorage.setItem("isAdmin", "false");
-        fetchDates();
-    });
+// POBIERANIE GŁOSÓW
+async function fetchVotes() {
+    const res = await fetch(`/api/votes/${playerId}`);
+    votedDates = await res.json();
 }
 
+// POBIERANIE DAT
+async function fetchDates() {
+    const res = await fetch("/api/dates");
+    const dates = await res.json();
+    renderDates(dates);
+}
+
+// DODAWANIE DAT
+addDateBtn.addEventListener("click", async () => {
+    if (!isPlayerRegistered) return alert("Najpierw podaj imię!");
+    if (!dateInput.value) return alert("Wybierz datę!");
+
+    const res = await fetch("/api/dates", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ date: dateInput.value })
+    });
+
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || "Błąd");
+    dateInput.value = "";
     fetchDates();
 });
+
+// RENDER DAT
+async function renderDates(dates) {
+    dateList.innerHTML = "";
+    const maxVotes = Math.max(...dates.map(d=>d.votes),0);
+    const voteMap = await (await fetch("/api/date-votes")).json();
+
+    dates.forEach(d => {
+        const li = document.createElement("li");
+        li.textContent = d.date + (d.is_confirmed?" ✅":"");
+        if (d.votes > 0 && d.votes === maxVotes) li.textContent += " 👑";
+
+        if(voteMap[d.date]){
+            const voters = voteMap[d.date].map(v=>`${v.emoji} ${v.name}`).join(", ");
+            const span = document.createElement("span");
+            span.style.marginLeft="10px";
+            span.style.fontSize="0.9em";
+            span.textContent = `🗳️ ${voters}`;
+            li.appendChild(span);
+        }
+
+        const btn = document.createElement("button");
+        if(!isPlayerRegistered){ btn.textContent="Podaj imię"; btn.disabled=true; }
+        else if(votedDates.includes(d.date)){ btn.textContent=`Oddano (${d.votes})`; btn.disabled=true; }
+        else {
+            btn.textContent=`Głosuj (${d.votes})`;
+            btn.addEventListener("click", async()=>{
+                const res = await fetch("/api/vote", {
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body: JSON.stringify({ date:d.date, playerId })
+                });
+                const data = await res.json();
+                if(!res.ok) return alert(data.error || "Błąd głosowania");
+                votedDates.push(d.date);
+                fetchDates();
+            });
+        }
+        li.appendChild(btn);
+
+        // ADMIN PRZYCISKI
+        if(isAdmin){
+            const delBtn=document.createElement("button");
+            delBtn.textContent="Usuń";
+            delBtn.addEventListener("click", async()=>{
+                await fetch("/api/dates/delete", {
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body: JSON.stringify({dateId:d.id,pin:"1234"})
+                });
+                fetchDates();
+            });
+            li.appendChild(delBtn);
+
+            const confBtn=document.createElement("button");
+            confBtn.textContent="Zatwierdź";
+            confBtn.addEventListener("click", async()=>{
+                await fetch("/api/dates/confirm", {
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body: JSON.stringify({dateId:d.id,pin:"1234"})
+                });
+                fetchDates();
+            });
+            li.appendChild(confBtn);
+        }
+
+        dateList.appendChild(li);
+    });
+}
+const logoutAdminBtn = document.getElementById("logoutAdminBtn");
+
+logoutAdminBtn.addEventListener("click", () => {
+    isAdmin = false;
+    localStorage.setItem("isAdmin", "false");
+    alert("Wylogowano z konta admina! ✅");
+    fetchDates(); // odświeżenie dat, teraz jako zwykły gracz
+});
+
+// START
+fetchPlayers();
+if(isPlayerRegistered) fetchVotes();
+fetchDates();
