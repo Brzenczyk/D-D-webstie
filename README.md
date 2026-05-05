@@ -52,13 +52,15 @@ In Bash
 npm install
 node server.js
 Then open:
-http://localhost:3000
+http://localhost:10000
 
 ⚠️ Environment Configuration
 
 To run the project locally, you need to configure environment variables for email functionality.
 
 Create a .env file in the root directory and add:
+
+PORT=10000
 
 ADMIN_PIN=Your_Pin
 
