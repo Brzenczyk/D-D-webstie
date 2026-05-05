@@ -48,11 +48,13 @@ Debugging and solving real-world problems
 https://d-d-webstie.onrender.com
 
 💻How to run locally
+
+Clone the repository
+
 In Bash
+
 npm install
-node server.js
-Then open:
-http://localhost:10000
+
 
 ⚠️ Environment Configuration
 
@@ -75,3 +77,11 @@ MAIL_PASS=Your_Mail_Password
 MAIL_TO=Your_Mail_My_Was_@mailtrap.io
 
 ⚠️ For security reasons, sensitive data such as email credentials is not included in the repository.
+
+Again In Bash
+
+node server.js
+
+Then open:
+
+http://localhost:10000
